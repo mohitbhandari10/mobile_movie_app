@@ -9,6 +9,7 @@ import { fetchMovies } from "@/services/api";
 import MovieCard from "@/components/MovieCard";
 import { getTrendingMovies } from "@/services/appwrite";
 import TrendingCard from "@/components/TrendingCard";
+import { useCallback, useEffect, useState } from "react";
 
 export default function Index() {
   const router = useRouter();
@@ -20,11 +21,93 @@ export default function Index() {
   } = useFetch(getTrendingMovies)
 
 
+
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [allMovies, setAllMovies] = useState([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+
+
   const {
     data: movies,
     loading: moviesLoading,
     error: moviesError,
-  } = useFetch(() => fetchMovies({ query: "" }));
+    refetch:fetchMoviesData,
+  // } = useFetch(() => fetchMovies({ query: "" }));
+} = useFetch(() => fetchMovies({ query: "", page },[page]));
+
+
+
+  useEffect(() => {
+    if (movies) {
+      // setAllMovies(prev => [...prev, ...movies.results]);
+      setAllMovies(prev => page === 1 ? movies.results : [...prev, ...movies.results]);
+
+      setTotalPages(movies.totalPages);
+    }
+  }, [movies]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const loadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      setPage(prev => prev + 1);
+    }
+  }, [isLoading, hasMore]);
+  
+  
+
+
+
+  // const loadMoreMovies = () => {
+  //   if (page < totalPages && !isLoadingMore) {
+  //     setIsLoadingMore(true);
+  //     setPage(prev => prev + 1);
+  //     fetchMoviesData().finally(() => setIsLoadingMore(false));
+  //   }
+  // };
+
+  const loadMoreMovies = async () => {
+    if (page < totalPages && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setPage(prev => prev + 1);
+      try {
+        await fetchMoviesData(); // This should trigger a refetch
+      } finally {
+        setIsLoadingMore(false);
+      }
+    }
+  };
+  
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    return (
+      <View className="py-4">
+        <ActivityIndicator size="small" color="#ffffff" />
+      </View>
+    );
+  };
+
+  if (moviesLoading && page === 1) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#ffffff" />
+      </View>
+    );
+  }
+
+  if (moviesError) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-white">Error loading movies</Text>
+      </View>
+    );
+  }
+
+
+  // console.log("hello 1")
   return (
     <View className="flex-1 bg-primary">
       <Image source={images.bg} className="absolute w-full z-0" />
@@ -76,13 +159,14 @@ export default function Index() {
 
 
               <FlatList 
-                data={movies}
+                data={allMovies}
                 renderItem={({item}) => (
                     // <Text className="text-white text-sm">{item.title}</Text>
                     <MovieCard
                     {...item} 
                     />
                 )}
+                
                 keyExtractor={(item) => item.id.toString()}
                 numColumns={3}
                 columnWrapperStyle={{
@@ -93,6 +177,9 @@ export default function Index() {
                 }} 
                 className="mt-2 pd-32" 
                 scrollEnabled = {false}
+                onEndReached={loadMoreMovies}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={renderFooter}
                 />
             </>
           </View>
