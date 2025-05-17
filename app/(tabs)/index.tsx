@@ -18,93 +18,23 @@ export default function Index() {
     data : trendingMovies,
     loading: trendingLoading,
     error: trendingError,
-  } = useFetch(getTrendingMovies)
+  } = useFetch(()=> getTrendingMovies)
 
 
-
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [allMovies, setAllMovies] = useState([]);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-
+  // const {
+  //   data: movies,
+  //   loading: moviesLoading,
+  //   error: moviesError,
+  // } = useFetch(() => fetchMovies({ query: "" }));
 
   const {
     data: movies,
     loading: moviesLoading,
     error: moviesError,
-    refetch:fetchMoviesData,
-  // } = useFetch(() => fetchMovies({ query: "" }));
-} = useFetch(() => fetchMovies({ query: "", page },[page]));
-
-
-
-  useEffect(() => {
-    if (movies) {
-      // setAllMovies(prev => [...prev, ...movies.results]);
-      setAllMovies(prev => page === 1 ? movies.results : [...prev, ...movies.results]);
-
-      setTotalPages(movies.totalPages);
-    }
-  }, [movies]);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-
-  const loadMore = useCallback(() => {
-    if (!isLoading && hasMore) {
-      setPage(prev => prev + 1);
-    }
-  }, [isLoading, hasMore]);
+    loadMore,
+    hasMore,
+  } = useFetch(() => fetchMovies({ query: "" }));
   
-  
-
-
-
-  // const loadMoreMovies = () => {
-  //   if (page < totalPages && !isLoadingMore) {
-  //     setIsLoadingMore(true);
-  //     setPage(prev => prev + 1);
-  //     fetchMoviesData().finally(() => setIsLoadingMore(false));
-  //   }
-  // };
-
-  const loadMoreMovies = async () => {
-    if (page < totalPages && !isLoadingMore) {
-      setIsLoadingMore(true);
-      setPage(prev => prev + 1);
-      try {
-        await fetchMoviesData(); // This should trigger a refetch
-      } finally {
-        setIsLoadingMore(false);
-      }
-    }
-  };
-  
-  const renderFooter = () => {
-    if (!isLoadingMore) return null;
-    return (
-      <View className="py-4">
-        <ActivityIndicator size="small" color="#ffffff" />
-      </View>
-    );
-  };
-
-  if (moviesLoading && page === 1) {
-    return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#ffffff" />
-      </View>
-    );
-  }
-
-  if (moviesError) {
-    return (
-      <View className="flex-1 justify-center items-center">
-        <Text className="text-white">Error loading movies</Text>
-      </View>
-    );
-  }
 
 
   // console.log("hello 1")
@@ -138,6 +68,7 @@ export default function Index() {
                 </Text>
               </View>
             )}
+            
             <>
               
               <FlatList 
@@ -159,7 +90,7 @@ export default function Index() {
 
 
               <FlatList 
-                data={allMovies}
+                data={movies}
                 renderItem={({item}) => (
                     // <Text className="text-white text-sm">{item.title}</Text>
                     <MovieCard
@@ -167,7 +98,9 @@ export default function Index() {
                     />
                 )}
                 
-                keyExtractor={(item) => item.id.toString()}
+                // keyExtractor={(item) => item.id.toString()}
+                keyExtractor={(item, index) => `${item.id}-${index}`}
+
                 numColumns={3}
                 columnWrapperStyle={{
                   justifyContent:'flex-start',
@@ -177,9 +110,17 @@ export default function Index() {
                 }} 
                 className="mt-2 pd-32" 
                 scrollEnabled = {false}
-                onEndReached={loadMoreMovies}
-                onEndReachedThreshold={0.5}
-                ListFooterComponent={renderFooter}
+                //  onEndReachedThreshold={0.5}
+                onEndReached={() => {
+                  if (!moviesLoading && hasMore) {
+                    loadMore();
+                  }
+                }}
+                 ListFooterComponent={
+                  moviesLoading ? (
+                    <Text className="text-white text-center py-2">Loading more...</Text>
+                  ) : null
+                }
                 />
             </>
           </View>
