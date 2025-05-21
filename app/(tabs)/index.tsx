@@ -5,6 +5,7 @@ import { Link } from "expo-router";
 import { ActivityIndicator, FlatList, Image, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import useFetch from "@/services/useFetch";
+import useFetch_trend from "@/services/useFetch";
 import { fetchMovies } from "@/services/api";
 import MovieCard from "@/components/MovieCard";
 import { getTrendingMovies } from "@/services/appwrite";
@@ -18,7 +19,7 @@ export default function Index() {
     data : trendingMovies,
     loading: trendingLoading,
     error: trendingError,
-  } = useFetch(()=> getTrendingMovies)
+  } = useFetch_trend(getTrendingMovies)
 
 
   // const {
